@@ -1,7 +1,7 @@
 # src/infra/adapters/dataframe_adapter.py
 import pandas as pd
 from typing import List
-from domain.models import StockInfo
+from core.domain.models import StockInfo
 
 def convert_to_dataframe(stocks: List[StockInfo]) -> pd.DataFrame:
     """

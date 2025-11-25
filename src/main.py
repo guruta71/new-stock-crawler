@@ -10,9 +10,9 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 if project_root not in sys.path:
     sys.path.append(os.path.dirname(project_root)) 
 
-from domain.ports import IPOInfoPort, PersistencePort
+from core.ports.ports import IPOInfoPort, PersistencePort
 from infra.adapters.playwright_adapter import PlaywrightIPOAdapter
-from domain.models import ScrapeReport, StockInfo
+from core.domain.models import ScrapeReport, StockInfo
 from infra.adapters.dataframe_adapter import convert_to_dataframe
 from infra.adapters.excel_persistence_adapter import LocalExcelPersistenceAdapter
 

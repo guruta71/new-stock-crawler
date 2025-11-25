@@ -3,7 +3,7 @@ import re
 from typing import Generator, Tuple, List, Optional
 from playwright.sync_api import Page, Locator
 
-from domain.models import ScrapeReport
+from core.domain.models import ScrapeReport
 from infra.adapters.parsers import utils  # 분리된 유틸리티 함수 임포트
 
 class CalendarParser:

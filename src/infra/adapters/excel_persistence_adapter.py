@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from typing import Dict
-from domain.ports import PersistencePort
+from core.ports.ports import PersistencePort
 
 class LocalExcelPersistenceAdapter(PersistencePort):
     

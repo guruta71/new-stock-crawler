@@ -2,8 +2,8 @@ import time
 from typing import List, Tuple
 from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 
-from domain.ports import IPOInfoPort
-from domain.models import ScrapeReport, StockInfo
+from core.ports.ports import IPOInfoPort
+from core.domain.models import ScrapeReport, StockInfo
 
 # 분리된 파서 클래스들을 임포트합니다.
 from infra.adapters.parsers.calander_parser import CalendarParser

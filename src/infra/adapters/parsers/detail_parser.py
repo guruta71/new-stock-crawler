@@ -3,7 +3,7 @@ import traceback
 from typing import List, Tuple, Optional, Dict
 from playwright.sync_api import Page, Locator
 
-from domain.models import StockInfo
+from core.domain.models import StockInfo
 from infra.adapters.parsers import utils  # 분리된 유틸리티 함수 임포트
 from infra.adapters.parsers.table_grid_builder import TableGridBuilder # 테이블 변환기 임포트
 from infra.adapters.parsers.strategies import (
