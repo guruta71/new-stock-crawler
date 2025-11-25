@@ -1,108 +1,94 @@
 # src/main.py
-import sys
-import os
-import datetime
-import pandas as pd
-from typing import List, Dict 
+"""
+Stock Crawler Main Application
+새로운 아키텍처 기반 (Clean Architecture + Hexagonal)
+"""
+from datetime import date
 
-# 경로 설정
-project_root = os.path.dirname(os.path.abspath(__file__))
-if project_root not in sys.path:
-    sys.path.append(os.path.dirname(project_root)) 
+# Core
+from core.services.crawler_service import CrawlerService
 
-from core.ports.ports import IPOInfoPort, PersistencePort
-from infra.adapters.playwright_adapter import PlaywrightIPOAdapter
-from core.domain.models import ScrapeReport, StockInfo
-from infra.adapters.dataframe_adapter import convert_to_dataframe
+# Adapters - Web Scraping
+from infra.adapters.web.playwright_page_provider import PlaywrightPageProvider
+from infra.adapters.web.calendar_scraper_adapter import CalendarScraperAdapter
+from infra.adapters.web.detail_scraper_adapter import DetailScraperAdapter
+
+# Adapters - Data
+from infra.adapters.data.dataframe_mapper import DataFrameMapper
 from infra.adapters.excel_persistence_adapter import LocalExcelPersistenceAdapter
 
-def run_scrape():
-    print("--- 🚀 Playwright (상장) 종목 연도별 크롤링 시작 ---")
+# Adapters - Utilities
+from infra.adapters.utils.console_logger import ConsoleLogger
+from infra.adapters.utils.date_calculator import DateRangeCalculator
 
-    today: datetime.date = datetime.date.today() 
-    current_year: int = today.year      
-    current_month: int = today.month    
-    current_day: int = today.day        
+
+def main():
+    """메인 애플리케이션 진입점"""
     
-    start_year: int = 2020 # ◀ 크롤링 시작 연도
-
-    print(f"기준 날짜: {today}")
-    print(f"크롤링 대상: {start_year}년 1월 1일 ~ {current_year}년 {current_month}월 {current_day-1}일(어제)까지")
-    print("필터: (상장) 포함, '스팩' 제외")
-
-    # --- 어댑터 의존성 주입 ---
-    ipo_adapter: IPOInfoPort = PlaywrightIPOAdapter(headless=True)
-    persistence_adapter: PersistencePort = LocalExcelPersistenceAdapter()
+    # 설정
+    START_YEAR = 2020
+    HEADLESS = True
     
-    # ▼▼▼ [수정] 연도별 DataFrame을 담을 딕셔너리 초기화 ▼▼▼
-    yearly_dataframes: Dict[int, pd.DataFrame] = {}
+    # ========================================
+    # 의존성 생성 (Dependency Injection)
+    # ========================================
+    
+    # 1. 유틸리티
+    logger = ConsoleLogger()
+    date_calculator = DateRangeCalculator()
+    
+    # 2. Web Scraping
+    page_provider = PlaywrightPageProvider(headless=HEADLESS)
+    calendar_scraper = CalendarScraperAdapter()
+    detail_scraper = DetailScraperAdapter()
+    
+    # 3. Data
+    data_mapper = DataFrameMapper()
+    data_exporter = LocalExcelPersistenceAdapter()
+    
+    # 4. Service (모든 의존성 주입)
+    crawler_service = CrawlerService(
+        page_provider=page_provider,
+        calendar_scraper=calendar_scraper,
+        detail_scraper=detail_scraper,
+        data_mapper=data_mapper,
+        data_exporter=data_exporter,
+        date_calculator=date_calculator,
+        logger=logger
+    )
+    
+    # ========================================
+    # 크롤링 실행
+    # ========================================
     
     try:
-        # --- 1. 셋업 (루프 밖에서 1회만 실행) ---
-        ipo_adapter.setup()
+        logger.info("=" * 60)
+        logger.info("🚀 Stock Crawler 시작")
+        logger.info(f"📅 기준 날짜: {date.today()}")
+        logger.info(f"📆 크롤링 시작 연도: {START_YEAR}년")
+        logger.info("🔍 필터: (상장) 포함, 스팩 제외")
+        logger.info("=" * 60)
         
-        for year_to_scrape in range(start_year, current_year + 1):
-            
-            print(f"\n\n--- 🔄 [{year_to_scrape}년] 작업 시작 ---")
-            
-            # --- 연도별 탐색 범위 설정 ---
-            if year_to_scrape == current_year:
-                target_start_month = 1
-                target_end_month = current_month
-                target_day_limit = current_day 
-            else:
-                target_start_month = 1
-                target_end_month = 12
-                target_day_limit = 32 
-
-            print(f"   (대상: {year_to_scrape}년 {target_start_month}월 ~ {target_end_month}월)")
-
-            # --- 2. 1차 크롤링 (캘린더 목록) ---
-            report: ScrapeReport = ipo_adapter.get_ipos_for_period(
-                year=year_to_scrape,
-                start_month=target_start_month,
-                end_month=target_end_month,
-                today_day=target_day_limit
-            )
-            
-            print("   [성공] 1차 크롤링을 완료했습니다. ✅")
-            
-            print("\n   --- 📊 1차 요약 리포트 ---")
-            print(f"    총 {report.spack_filtered_count}개의 '스팩' 종목을 제외했습니다.")
-            print(f"    총 {report.final_stock_count}개의 (상장) 종목을 수집했습니다.")
-            
-            # --- 3. 2차 크롤링 & 3차 변환 ---
-            if report.results:
-                stock_details_list: List[StockInfo] = ipo_adapter.scrape_stock_details(report.results)
-                
-                print("\n   --- 🔄 DataFrame 변환 시작 ---")
-                df: pd.DataFrame = convert_to_dataframe(stock_details_list)
-                print("    [성공] DataFrame 변환 완료.")
-                
-                # ▼▼▼ [수정] 딕셔너리에 DataFrame 저장 (저장 X) ▼▼▼
-                if not df.empty:
-                    print(f"    [{year_to_scrape}년] 데이터 {len(df)}건 수집 완료.")
-                    yearly_dataframes[year_to_scrape] = df
-                else:
-                    print(f"    [{year_to_scrape}년] 상세 정보 수집 실패 (결과 없음)")
-                
-            else:
-                print("\n    (1차 수집된 종목 없음)")
-
-        # --- 4. 엑셀 저장 (루프가 끝난 후 마지막에 1회 실행) ---
-        if yearly_dataframes: # 딕셔너리에 데이터가 하나라도 있다면
-            print("\n\n--- 💾 엑셀 파일 저장 시작 (모든 연도 통합) ---")
-            persistence_adapter.save_report(yearly_dataframes)
-        else:
-            print("\n\n (저장할 데이터가 없어 엑셀 저장을 건너뜁니다)")
-
+        # Playwright 초기화
+        page_provider.setup()
+        
+        # CrawlerService가 모든 비즈니스 로직을 처리
+        crawler_service.run(start_year=START_YEAR)
+        
+        logger.info("=" * 60)
+        logger.info("🏁 모든 크롤링 작업 완료")
+        logger.info("=" * 60)
+        
+    except KeyboardInterrupt:
+        logger.warning("\n⚠️  사용자에 의해 중단되었습니다")
     except Exception as e:
-        print(f"\n[실패] 크롤링 중 치명적 오류 발생: {e} ❌")
-        
+        logger.error(f"❌ 크롤링 중 오류 발생: {e}")
+        raise
     finally:
-        # --- 5. 정리 (루프 밖에서 1회만 실행) ---
-        ipo_adapter.cleanup()
-        print("\n\n--- 🏁 모든 크롤링 작업 종료 ---")
+        # 리소스 정리
+        page_provider.cleanup()
+        logger.info("\n✅ 리소스 정리 완료")
+
 
 if __name__ == "__main__":
-    run_scrape()
+    main()
