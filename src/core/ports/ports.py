@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Tuple, List, Dict 
 from playwright.sync_api import Page
-from .models import ScrapeReport, StockInfo  # [수정] StockInfo 임포트
+from core.domain.models import ScrapeReport, StockInfo
 import pandas as pd
 
 class IPOInfoPort(ABC):
