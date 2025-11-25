@@ -19,9 +19,9 @@ from infra.adapters.parsing.html.strategies import (
 )
 
 
-class DetailScraperImpl(DetailScraperPort):
+class DetailScraperAdapter(DetailScraperPort):
     """
-    종목 상세 정보 스크래핑 구현
+    종목 상세 정보 스크래핑 어댑터
     
     원칙 준수:
     - 다른 어댑터를 모름 ✅
@@ -129,14 +129,14 @@ class DetailScraperImpl(DetailScraperPort):
         
         return {
             "listing_date": listing_date,
-            "competition_rate": utils.format_competition_rate(competition_rate_raw),
-            "emp_shares": utils.extract_share_count(
+            "competition_rate": text_parsers.format_competition_rate(competition_rate_raw),
+            "emp_shares": text_parsers.extract_share_count(
                 self._get_value(table, "우리사주조합")
             ),
-            "inst_shares": utils.extract_share_count(
+            "inst_shares": text_parsers.extract_share_count(
                 self._get_value(table, "기관투자자등")
             ),
-            "retail_shares": utils.extract_share_count(
+            "retail_shares": text_parsers.extract_share_count(
                 self._get_value(table, "일반청약자")
             ),
         }
@@ -151,21 +151,21 @@ class DetailScraperImpl(DetailScraperPort):
             url=href,
             market_segment=company_info["market"],
             sector=company_info["sector"],
-            revenue=utils.parse_to_int(company_info["revenue"]),
-            profit_pre_tax=utils.parse_to_int(company_info["profit_pre_tax"]),
-            net_profit=utils.parse_to_int(company_info["net_profit"]),
-            capital=utils.parse_to_int(company_info["capital"]),
-            total_shares=utils.parse_to_int(offering_info["total_shares"]),
-            par_value=utils.parse_to_int(offering_info["par_value"]),
+            revenue=text_parsers.parse_to_int(company_info["revenue"]),
+            profit_pre_tax=text_parsers.parse_to_int(company_info["profit_pre_tax"]),
+            net_profit=text_parsers.parse_to_int(company_info["net_profit"]),
+            capital=text_parsers.parse_to_int(company_info["capital"]),
+            total_shares=text_parsers.parse_to_int(offering_info["total_shares"]),
+            par_value=text_parsers.parse_to_int(offering_info["par_value"]),
             desired_price_range=offering_info["desired_price"],
-            confirmed_price=utils.parse_to_int(offering_info["confirmed_price"]),
-            offering_amount=utils.parse_to_int(offering_info["offering_amount"]),
+            confirmed_price=text_parsers.parse_to_int(offering_info["confirmed_price"]),
+            offering_amount=text_parsers.parse_to_int(offering_info["offering_amount"]),
             underwriter=offering_info["underwriter"],
             listing_date=schedule_info["listing_date"],
             competition_rate=schedule_info["competition_rate"],
-            emp_shares=utils.parse_to_int(schedule_info["emp_shares"]),
-            inst_shares=utils.parse_to_int(schedule_info["inst_shares"]),
-            retail_shares=utils.parse_to_int(schedule_info["retail_shares"]),
+            emp_shares=text_parsers.parse_to_int(schedule_info["emp_shares"]),
+            inst_shares=text_parsers.parse_to_int(schedule_info["inst_shares"]),
+            retail_shares=text_parsers.parse_to_int(schedule_info["retail_shares"]),
             tradable_shares_count=tradable_info[0],
             tradable_shares_percent=tradable_info[1],
         )
@@ -226,43 +226,47 @@ class DetailScraperImpl(DetailScraperPort):
             colspan_end += 1
         return colspan_end
 
-    def _find_sub_columns(
-        self, grid: List[List[str]], header_row_idx: int, header_col_idx: int
-    ) -> List[int]:
-        """하위 열(주식수, 지분율) 찾기"""
-        if header_row_idx + 1 >= len(grid):
-            return [header_col_idx, header_col_idx + 1]
+    def _find_sub_columns(self, grid: List[List[str]], row_idx: int, col_idx: int) -> List[int]:
+        """하위 컬럼(주식수, 비율) 찾기"""
+        colspan_end = self._calculate_colspan_range(grid, row_idx, col_idx)
         
-        next_row = grid[header_row_idx + 1]
-        colspan_end = self._calculate_colspan_range(grid, header_row_idx, header_col_idx)
+        # 바로 아래 행에서 하위 헤더 찾기
+        next_row = row_idx + 1
+        if next_row >= len(grid):
+            return [col_idx, col_idx + 1]
+
+        share_col = -1
+        percent_col = -1
+
+        for c in range(col_idx, colspan_end + 1):
+            text = grid[next_row][c]
+            if "주식수" in text:
+                share_col = c
+            elif "비율" in text or "지분율" in text:
+                percent_col = c
         
-        sub_cols = []
-        for col in range(header_col_idx, min(colspan_end + 1, len(next_row))):
-            sub_cell = next_row[col].strip()
-            if sub_cell and sub_cell not in ("-", "", "　"):
-                if "주식수" in sub_cell or "주식" in sub_cell:
-                    sub_cols.append(col)
-                elif "지분율" in sub_cell or "%" in sub_cell:
-                    sub_cols.append(col)
-        
-        return sub_cols if sub_cols else [header_col_idx, header_col_idx + 1]
+        if share_col != -1 and percent_col != -1:
+            return [share_col, percent_col]
+            
+        return [col_idx, col_idx + 1]
 
     def _extract_tradable_values(
-        self, grid: List[List[str]], tradable_cols: List[int]
+        self, grid: List[List[str]], cols: List[int]
     ) -> Tuple[str, str]:
         """값 추출"""
-        last_row = grid[-1]
+        share_col, percent_col = cols[0], cols[1]
         
-        count = (
-            last_row[tradable_cols[0]].strip()
-            if len(tradable_cols) > 0 and tradable_cols[0] < len(last_row)
-            else "N/A"
-        )
-        
-        percent = (
-            last_row[tradable_cols[1]].strip()
-            if len(tradable_cols) > 1 and tradable_cols[1] < len(last_row)
-            else "N/A"
-        )
-        
-        return utils.clean_tradable_values(count, percent)
+        # 마지막 행(계) 또는 그 위 행에서 값 찾기
+        for row_idx in range(len(grid) - 1, -1, -1):
+            row = grid[row_idx]
+            if len(row) <= max(share_col, percent_col):
+                continue
+                
+            share_val = row[share_col].strip()
+            percent_val = row[percent_col].strip()
+            
+            # 유효한 숫자가 있는 행 찾기
+            if share_val and share_val != "-" and any(c.isdigit() for c in share_val):
+                return text_parsers.clean_tradable_values(share_val, percent_val)
+                
+        return "N/A", "N/A"

@@ -9,9 +9,9 @@ from core.domain.models import ScrapeReport
 from infra.adapters.parsing.text import parsers as text_parsers
 
 
-class CalendarScraperImpl(CalendarScraperPort):
+class CalendarScraperAdapter(CalendarScraperPort):
     """
-    38.co.kr 캘린더 스크래핑 구현
+    38.co.kr 캘린더 스크래핑 어댑터
     
     원칙 준수:
     - 다른 어댑터를 모름 ✅
