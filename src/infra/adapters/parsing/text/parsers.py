@@ -1,7 +1,7 @@
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
-def parse_to_int(text: str) -> Optional[int]:
+def parse_to_int(text: str, context: str = "") -> Optional[int]:
     """Parse text to integer, handling various formats."""
     if not text or text in ("N/A", "-"):
         return None
@@ -14,9 +14,15 @@ def parse_to_int(text: str) -> Optional[int]:
             if separator in cleaned:
                 cleaned = cleaned.split(separator)[0].strip()
         
+        if not cleaned or cleaned == "-":
+            return None
+        
         return int(float(cleaned))
     except (ValueError, Exception) as e:
-        print(f"      [경고] 정수 변환 실패: '{text}'")
+        msg = f"      [경고] 정수 변환 실패: '{text}'"
+        if context:
+            msg += f" | 항목: {context}"
+        print(msg)
         return None
 
 def clean_stock_name(name_raw: str) -> str:

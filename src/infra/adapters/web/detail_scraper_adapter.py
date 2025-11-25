@@ -28,8 +28,9 @@ class DetailScraperAdapter(DetailScraperPort):
     - Page 객체만 사용
     """
     
-    def __init__(self):
+    def __init__(self, logger=None):
         self.grid_builder = TableGridBuilder()
+        self.logger = logger
         self.table_strategies: List[TableFinderStrategy] = [
             TitleSiblingTableFinder(),
             TitleFollowingTableFinder(),
@@ -48,6 +49,8 @@ class DetailScraperAdapter(DetailScraperPort):
         for name, href in stocks:
             if stock := self._scrape_single(page, name, href):
                 results.append(stock)
+                if self.logger:
+                    self.logger.info(f"   ✅ 수집 완료: {stock.name} (공모가: {stock.confirmed_price:,}원, 경쟁률: {stock.competition_rate})")
             time.sleep(0.3)
         
         return results
@@ -151,21 +154,21 @@ class DetailScraperAdapter(DetailScraperPort):
             url=href,
             market_segment=company_info["market"],
             sector=company_info["sector"],
-            revenue=text_parsers.parse_to_int(company_info["revenue"]),
-            profit_pre_tax=text_parsers.parse_to_int(company_info["profit_pre_tax"]),
-            net_profit=text_parsers.parse_to_int(company_info["net_profit"]),
-            capital=text_parsers.parse_to_int(company_info["capital"]),
-            total_shares=text_parsers.parse_to_int(offering_info["total_shares"]),
-            par_value=text_parsers.parse_to_int(offering_info["par_value"]),
+            revenue=text_parsers.parse_to_int(company_info["revenue"], f"{name} - revenue"),
+            profit_pre_tax=text_parsers.parse_to_int(company_info["profit_pre_tax"], f"{name} - profit_pre_tax"),
+            net_profit=text_parsers.parse_to_int(company_info["net_profit"], f"{name} - net_profit"),
+            capital=text_parsers.parse_to_int(company_info["capital"], f"{name} - capital"),
+            total_shares=text_parsers.parse_to_int(offering_info["total_shares"], f"{name} - total_shares"),
+            par_value=text_parsers.parse_to_int(offering_info["par_value"], f"{name} - par_value"),
             desired_price_range=offering_info["desired_price"],
-            confirmed_price=text_parsers.parse_to_int(offering_info["confirmed_price"]),
-            offering_amount=text_parsers.parse_to_int(offering_info["offering_amount"]),
+            confirmed_price=text_parsers.parse_to_int(offering_info["confirmed_price"], f"{name} - confirmed_price"),
+            offering_amount=text_parsers.parse_to_int(offering_info["offering_amount"], f"{name} - offering_amount"),
             underwriter=offering_info["underwriter"],
             listing_date=schedule_info["listing_date"],
             competition_rate=schedule_info["competition_rate"],
-            emp_shares=text_parsers.parse_to_int(schedule_info["emp_shares"]),
-            inst_shares=text_parsers.parse_to_int(schedule_info["inst_shares"]),
-            retail_shares=text_parsers.parse_to_int(schedule_info["retail_shares"]),
+            emp_shares=text_parsers.parse_to_int(schedule_info["emp_shares"], f"{name} - emp_shares"),
+            inst_shares=text_parsers.parse_to_int(schedule_info["inst_shares"], f"{name} - inst_shares"),
+            retail_shares=text_parsers.parse_to_int(schedule_info["retail_shares"], f"{name} - retail_shares"),
             tradable_shares_count=tradable_info[0],
             tradable_shares_percent=tradable_info[1],
         )

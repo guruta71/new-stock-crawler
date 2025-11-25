@@ -2,9 +2,9 @@
 import os
 import pandas as pd
 from typing import Dict
-from core.ports.ports import PersistencePort
+from core.ports.data_ports import DataExporterPort
 
-class LocalExcelPersistenceAdapter(PersistencePort):
+class LocalExcelPersistenceAdapter(DataExporterPort):
     
     # ▼▼▼ [수정] 단일 파일 이름으로 변경 ▼▼▼
     OUTPUT_DIR: str = "reports"
@@ -15,7 +15,7 @@ class LocalExcelPersistenceAdapter(PersistencePort):
             os.makedirs(self.OUTPUT_DIR)
             print(f"'{self.OUTPUT_DIR}' 디렉터리를 생성했습니다.")
         
-    def save_report(self, data: Dict[int, pd.DataFrame]) -> None:
+    def export(self, data: Dict[int, pd.DataFrame]) -> None:
         """
         {연도: DataFrame} 딕셔너리를 받아
         단일 엑셀 파일에 연도별 시트로 저장합니다.
