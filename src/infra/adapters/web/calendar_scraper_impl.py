@@ -6,7 +6,7 @@ from playwright.sync_api import Page, Locator
 
 from core.ports.web_scraping_ports import CalendarScraperPort
 from core.domain.models import ScrapeReport
-from infra.adapters.parsers import utils
+from infra.adapters.parsing.text import parsers as text_parsers
 
 
 class CalendarScraperImpl(CalendarScraperPort):
@@ -124,11 +124,11 @@ class CalendarScraperImpl(CalendarScraperPort):
             if "(상장)" not in name_raw:
                 continue
             
-            if utils.is_spac_stock(name_raw):
+            if text_parsers.is_spac_stock(name_raw):
                 spacks_filtered += 1
                 continue
             
-            name_cleaned = utils.clean_stock_name(name_raw)
+            name_cleaned = text_parsers.clean_stock_name(name_raw)
             
             if href := link.get_attribute("href"):
                 href_full = f"{self.BASE_URL}{href}"

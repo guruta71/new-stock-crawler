@@ -8,9 +8,9 @@ from playwright.sync_api import Page, Locator
 
 from core.ports.web_scraping_ports import DetailScraperPort
 from core.domain.models import StockInfo
-from infra.adapters.parsers import utils
-from infra.adapters.parsers.table_grid_builder import TableGridBuilder
-from infra.adapters.parsers.strategies import (
+from infra.adapters.parsing.text import parsers as text_parsers
+from infra.adapters.parsing.html.table_grid_builder import TableGridBuilder
+from infra.adapters.parsing.html.strategies import (
     TableFinderStrategy,
     TitleSiblingTableFinder,
     TitleFollowingTableFinder,
