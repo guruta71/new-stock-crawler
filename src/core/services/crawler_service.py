@@ -40,7 +40,7 @@ class CrawlerService:
         self.date_calculator = date_calculator
         self.logger = logger
     
-    def run(self, start_year: int) -> None:
+    def run(self, start_year: int) -> Dict[int, pd.DataFrame]:
         """
         크롤링 실행
         
@@ -193,3 +193,5 @@ class CrawlerService:
             self.logger.info("저장 완료")
         else:
             self.logger.warning("저장할 데이터 없음")
+            
+        return yearly_data

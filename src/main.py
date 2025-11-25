@@ -95,6 +95,61 @@ def main():
         page_provider=page_provider,
         calendar_scraper=calendar_scraper,
         detail_scraper=detail_scraper,
+# src/main.py
+"""
+Stock Crawler Main Application
+새로운 아키텍처 기반 (Clean Architecture + Hexagonal)
+"""
+from datetime import date
+
+# Core
+from core.services.crawler_service import CrawlerService
+from core.services.enrichment_service import EnrichmentService
+
+# Adapters - Web Scraping
+from infra.adapters.web.playwright_page_provider import PlaywrightPageProvider
+from infra.adapters.web.calendar_scraper_adapter import CalendarScraperAdapter
+from infra.adapters.web.detail_scraper_adapter import DetailScraperAdapter
+
+# Adapters - Data
+from infra.adapters.data.dataframe_mapper import DataFrameMapper
+from infra.adapters.data.fdr_adapter import FDRAdapter
+from infra.adapters.excel_persistence_adapter import LocalExcelPersistenceAdapter
+
+# Adapters - Utilities
+from infra.adapters.utils.console_logger import ConsoleLogger
+from infra.adapters.utils.date_calculator import DateCalculator
+
+
+def main():
+    """메인 애플리케이션 진입점"""
+    
+    # 설정
+    START_YEAR = 2020
+    HEADLESS = True
+    
+    # ========================================
+    # 의존성 생성 (Dependency Injection)
+    # ========================================
+    
+    # 1. 유틸리티
+    logger = ConsoleLogger()
+    date_calculator = DateCalculator()
+    
+    # 2. Web Scraping
+    page_provider = PlaywrightPageProvider(headless=HEADLESS)
+    calendar_scraper = CalendarScraperAdapter()
+    detail_scraper = DetailScraperAdapter(logger=logger)
+    
+    # 3. Data
+    data_mapper = DataFrameMapper()
+    data_exporter = LocalExcelPersistenceAdapter()
+    
+    # 4. Service (모든 의존성 주입)
+    crawler_service = CrawlerService(
+        page_provider=page_provider,
+        calendar_scraper=calendar_scraper,
+        detail_scraper=detail_scraper,
         data_mapper=data_mapper,
         data_exporter=data_exporter,
         date_calculator=date_calculator,
