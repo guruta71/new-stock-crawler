@@ -1,0 +1,137 @@
+"""
+캘린더 스크래핑 어댑터 구현
+"""
+from typing import List, Tuple, Optional
+from playwright.sync_api import Page, Locator
+
+from core.ports.web_scraping_ports import CalendarScraperPort
+from core.domain.models import ScrapeReport
+from infra.adapters.parsers import utils
+
+
+class CalendarScraperImpl(CalendarScraperPort):
+    """
+    38.co.kr 캘린더 스크래핑 구현
+    
+    원칙 준수:
+    - 다른 어댑터를 모름 ✅
+    - Page 객체만 사용
+    """
+    
+    BASE_URL = "https://www.38.co.kr"
+    SCHEDULE_URL = f"{BASE_URL}/html/ipo/ipo_schedule.php"
+    
+    def scrape_calendar(
+        self,
+        page: Page,
+        year: int,
+        start_month: int,
+        end_month: int,
+        today_day: int
+    ) -> ScrapeReport:
+        """캘린더 스크래핑 (기존 CalendarParser 로직)"""
+        total_spacs = 0
+        total_results = []
+        
+        for month in range(start_month, end_month + 1):
+            is_current = (month == end_month)
+            
+            # 월별 페이지 이동
+            self._goto_month(page, year, month)
+            
+            # 파싱
+            spacs, results = self._parse_table(page, month, today_day, is_current)
+            total_spacs += spacs
+            total_results.extend(results)
+        
+        return ScrapeReport(
+            final_stock_count=len(total_results),
+            spack_filtered_count=total_spacs,
+            results=total_results
+        )
+    
+    def _goto_month(self, page: Page, year: int, month: int) -> None:
+        """월별 페이지 이동"""
+        month_str = f"{month:02d}"
+        url = f"{self.SCHEDULE_URL}?mode=goMonth&o=s&month={month_str}&year={year}"
+        page.goto(url)
+        page.wait_for_load_state("networkidle")
+    
+    def _parse_table(
+        self, page: Page, month: int, today_day: int, is_current: bool
+    ) -> Tuple[int, List[Tuple[str, str]]]:
+        """테이블 파싱"""
+        calendar_table = page.locator('table[summary="증시캘린더"]')
+        
+        if not calendar_table.is_visible():
+            return 0, []
+        
+        cells = calendar_table.locator("tbody > tr > td")
+        spacks_total = 0
+        results_total = []
+        
+        for i in range(cells.count()):
+            spack_count, cell_results = self._parse_cell(
+                cells.nth(i), month, today_day, is_current
+            )
+            spacks_total += spack_count
+            results_total.extend(cell_results)
+        
+        return spacks_total, results_total
+
+    def _parse_cell(
+        self, cell: Locator, current_month: int, today_day: int, is_current_month: bool
+    ) -> Tuple[int, List[Tuple[str, str]]]:
+        """단일 셀 파싱"""
+        day = self._extract_day(cell)
+        if day is None:
+            return 0, []
+        
+        if self._should_skip(day, today_day, is_current_month):
+            return 0, []
+        
+        try:
+            return self._extract_links(cell)
+        except Exception:
+            return 0, []
+
+    def _extract_day(self, cell: Locator) -> Optional[int]:
+        """날짜 추출"""
+        day_locator = cell.locator("table tr:first-child td:first-child b").first
+        if not day_locator.is_visible():
+            return None
+        
+        try:
+            return int(day_locator.inner_text().strip())
+        except ValueError:
+            return None
+
+    def _should_skip(self, day: int, today_day: int, is_current_month: bool) -> bool:
+        """스킵 여부 결정"""
+        return is_current_month and day >= today_day
+
+    def _extract_links(self, cell: Locator) -> Tuple[int, List[Tuple[str, str]]]:
+        """링크 추출"""
+        spacks_filtered = 0
+        results = []
+        
+        links = cell.locator("table tr:nth-child(2) td a")
+        
+        for i in range(links.count()):
+            link = links.nth(i)
+            name_raw = link.inner_text().strip().replace("\n", " ")
+            
+            if "(상장)" not in name_raw:
+                continue
+            
+            if utils.is_spac_stock(name_raw):
+                spacks_filtered += 1
+                continue
+            
+            name_cleaned = utils.clean_stock_name(name_raw)
+            
+            if href := link.get_attribute("href"):
+                href_full = f"{self.BASE_URL}{href}"
+                results.append((name_cleaned, href_full))
+        
+        return spacks_filtered, results
