@@ -336,3 +336,52 @@ class TestCrawlerService:
         mock_dependencies['logger'].info.assert_any_call(
             "[2024-11-26] 수집된 데이터 없음"
         )
+
+    def test_run_full_coverage(self, crawler_service, mock_dependencies):
+        """
+        run() 메서드의 모든 라인을 확실하게 커버하기 위한 통합 테스트
+        """
+        # Given
+        start_year = 2024
+        
+        # Mock: 날짜 계산
+        mock_date_range = Mock(start_month=1, end_month=12, day_limit=31)
+        mock_dependencies['date_calculator'].calculate.return_value = {2024: mock_date_range}
+        
+        # Mock: Page
+        mock_page = Mock()
+        mock_dependencies['page_provider'].get_page.return_value = mock_page
+        
+        # Mock: 캘린더 (결과 있음)
+        stock_tuple = ("종목", "url")
+        mock_report = ScrapeReport(
+            final_stock_count=1,
+            spack_filtered_count=0,
+            results=[stock_tuple]
+        )
+        mock_dependencies['calendar_scraper'].scrape_calendar.return_value = mock_report
+        
+        # Mock: 상세 (결과 있음)
+        mock_stock = StockInfo(
+            name="종목", url="url", market_segment="KOSPI", sector="IT", 
+            revenue=0, profit_pre_tax=0, net_profit=0, capital=0, total_shares=0, 
+            par_value=0, desired_price_range="", confirmed_price=0, offering_amount=0, 
+            underwriter="", listing_date="2024-01-01", competition_rate="", 
+            emp_shares=0, inst_shares=0, retail_shares=0, tradable_shares_count="", 
+            tradable_shares_percent=""
+        )
+        mock_dependencies['detail_scraper'].scrape_details.return_value = [mock_stock]
+        
+        # Mock: DataFrame (비어있지 않음)
+        import pandas as pd
+        mock_df = pd.DataFrame([{'name': '종목'}])
+        mock_dependencies['data_mapper'].to_dataframe.return_value = mock_df
+        
+        # When
+        result = crawler_service.run(start_year)
+        
+        # Then
+        assert result is not None
+        assert 2024 in result
+        mock_dependencies['logger'].info.assert_any_call("크롤링 시작")
+        mock_dependencies['data_exporter'].export.assert_called_once()
