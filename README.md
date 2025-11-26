@@ -73,6 +73,38 @@ uv run crawler enrich
 uv run crawler --help
 ```
 
+## 🐳 Docker 실행
+
+도커를 사용하면 환경 설정 없이 바로 실행할 수 있습니다.
+
+1. **이미지 빌드**
+   ```bash
+   docker build -t stock-crawler .
+   ```
+
+2. **실행 (전체 크롤링)**
+   ```bash
+   # 엑셀 파일 저장을 위해 볼륨 마운트 필요
+   docker run -v $(pwd)/reports:/app/reports stock-crawler full
+   ```
+
+3. **실행 (일일 업데이트)**
+   ```bash
+   docker run -v $(pwd)/reports:/app/reports stock-crawler daily
+   ```
+
+## 🤖 GitHub Actions 자동화
+
+이 저장소에는 매일 한국 시간 **오후 6시**에 자동으로 실행되는 워크플로우가 포함되어 있습니다.
+
+- 파일 위치: `.github/workflows/daily_crawl.yml`
+- 동작:
+  1. 매일 18:00에 실행
+  2. `uv run crawler daily` 실행
+  3. 변경된 엑셀 파일이 있으면 자동으로 **Commit & Push**
+
+> **주의**: GitHub Actions에서 엑셀 파일을 커밋하려면 레포지토리 설정에서 `Workflow permissions`를 `Read and write permissions`로 변경해야 할 수 있습니다.
+
 ## 📊 데이터 구조
 
 수집된 데이터는 `reports/ipo_data_all_years.xlsx` 파일에 저장됩니다.
