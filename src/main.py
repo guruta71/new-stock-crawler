@@ -7,7 +7,6 @@ from datetime import date
 
 # Core
 from core.services.crawler_service import CrawlerService
-from core.services.enrichment_service import EnrichmentService
 
 # Adapters - Web Scraping
 from infra.adapters.web.playwright_page_provider import PlaywrightPageProvider
@@ -39,14 +38,19 @@ def main():
     logger = ConsoleLogger()
     date_calculator = DateCalculator()
     
-    # 2. Web Scraping
-    page_provider = PlaywrightPageProvider(headless=HEADLESS)
-    calendar_scraper = CalendarScraperAdapter()
-    detail_scraper = DetailScraperAdapter(logger=logger)
-    
-    # 3. Data
+    # 2. Data (FDR 먼저 생성)
+    fdr_adapter = FDRAdapter()
     data_mapper = DataFrameMapper()
     data_exporter = LocalExcelPersistenceAdapter()
+    
+    # 3. Web Scraping (FDR 의존성 주입)
+    page_provider = PlaywrightPageProvider(headless=HEADLESS)
+    calendar_scraper = CalendarScraperAdapter()
+    detail_scraper = DetailScraperAdapter(
+        logger=logger,
+        ticker_mapper=fdr_adapter,
+        market_data_provider=fdr_adapter
+    )
     
     # 4. Service (모든 의존성 주입)
     crawler_service = CrawlerService(
@@ -56,15 +60,6 @@ def main():
         data_mapper=data_mapper,
         data_exporter=data_exporter,
         date_calculator=date_calculator,
-        logger=logger
-    )
-    
-    # 5. Enrichment Service
-    fdr_adapter = FDRAdapter()
-    enrichment_service = EnrichmentService(
-        ticker_mapper=fdr_adapter,
-        market_data_provider=fdr_adapter,
-        data_exporter=data_exporter,
         logger=logger
     )
     
@@ -78,17 +73,14 @@ def main():
         logger.info(f"📅 기준 날짜: {date.today()}")
         logger.info(f"📆 크롤링 시작 연도: {START_YEAR}년")
         logger.info("🔍 필터: (상장) 포함, 스팩 제외")
+        logger.info("💹 시세 정보: 자동 추가 (FDR)")
         logger.info("=" * 60)
         
         # Playwright 초기화
         page_provider.setup()
         
-        # 1. 크롤링 실행
+        # 크롤링 실행 (내부에서 각 기업마다 OHLC enrichment 수행)
         yearly_data = crawler_service.run(start_year=START_YEAR)
-        
-        # 2. 데이터 보강 (시세 및 성장률)
-        if yearly_data:
-            enrichment_service.enrich_data(yearly_data)
         
         logger.info("=" * 60)
         logger.info("🏁 모든 크롤링 및 보강 작업 완료")
