@@ -20,6 +20,7 @@ crawler = "cli:app"
 [dependency-groups]
 dev = [
     "radon>=6.0.1",
+    "pytest-cov>=6.0.0",
 ]
 
 [tool.uv]
