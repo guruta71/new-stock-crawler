@@ -1,11 +1,12 @@
 """
 Excel 내보내기 어댑터 구현
 """
-import os
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Union
 import pandas as pd
 
 from core.ports.data_ports import DataExporterPort
+from config import config
 
 
 class ExcelExporter(DataExporterPort):
@@ -13,8 +14,9 @@ class ExcelExporter(DataExporterPort):
     DataFrame을 Excel 파일로 저장하는 어댑터
     """
     
-    def __init__(self, output_dir: str = "output"):
-        self.output_dir = output_dir
+    def __init__(self, output_dir: Union[str, Path] = None):
+        # config.OUTPUT_DIR을 기본값으로 사용
+        self.output_dir = Path(output_dir) if output_dir else config.OUTPUT_DIR
         self._ensure_output_dir()
     
     def _ensure_output_dir(self) -> None:

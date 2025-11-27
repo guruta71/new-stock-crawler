@@ -1,0 +1,8 @@
+feat: 설정 중앙 집중화 (config.py 도입)
+
+- `src/config.py`: Pydantic Settings 기반 설정 클래스 정의
+- `.env`: 환경 변수 파일 생성 (gitignored)
+- `cli.py`: 의존성 주입 및 기본값 설정에 config 사용
+- `excel_exporter.py`: 출력 경로 설정에 config 사용
+- `playwright_page_provider.py`: headless 옵션에 config 사용
+- `calendar_scraper_adapter.py`: BASE_URL에 config 사용

@@ -6,11 +6,12 @@ from datetime import date, datetime
 from typing import Optional
 import pandas as pd
 import os
+from config import config
 
 app = typer.Typer(help="IPO 데이터 크롤러 CLI")
 
 
-def _build_dependencies(headless: bool = True):
+def _build_dependencies(headless: bool = config.HEADLESS):
     """
     의존성 조립 (DI Container 역할)
     
@@ -37,7 +38,7 @@ def _build_dependencies(headless: bool = True):
     # 2. Data
     fdr_adapter = FDRAdapter()
     data_mapper = DataFrameMapper()
-    data_exporter = ExcelExporter()
+    data_exporter = ExcelExporter()  # config 사용
     
     # 3. Web Scraping
     page_provider = PlaywrightPageProvider(headless=headless)
@@ -71,7 +72,7 @@ def _build_dependencies(headless: bool = True):
 @app.command("full")
 def full_crawl(
     start_year: int = typer.Option(2020, "--start-year", "-s", help="크롤링 시작 연도"),
-    headless: bool = typer.Option(True, "--headless/--no-headless", help="헤드리스 모드"),
+    headless: bool = typer.Option(config.HEADLESS, "--headless/--no-headless", help="헤드리스 모드"),
 ):
     """
     전체 기간 크롤링 (초기 수집용)
@@ -114,7 +115,7 @@ def full_crawl(
 @app.command("enrich")
 def enrich_data(
     filepath: str = typer.Option(
-        "reports/ipo_data_all_years.xlsx",
+        str(config.get_output_path()),
         "--file",
         "-f",
         help="대상 엑셀 파일 경로"
@@ -165,7 +166,7 @@ def enrich_data(
     
     # Enrichment 서비스 초기화
     fdr_adapter = FDRAdapter()
-    data_exporter = ExcelExporter()
+    data_exporter = ExcelExporter()  # config 사용
     
     enrichment_service = EnrichmentService(
         ticker_mapper=fdr_adapter,
@@ -190,7 +191,7 @@ def daily_update(
         "-d",
         help="대상 날짜 (YYYY-MM-DD 형식), 기본값: 오늘"
     ),
-    headless: bool = typer.Option(True, "--headless/--no-headless", help="헤드리스 모드"),
+    headless: bool = typer.Option(config.HEADLESS, "--headless/--no-headless", help="헤드리스 모드"),
 ):
     """
     일일 업데이트 (GitHub Actions용)

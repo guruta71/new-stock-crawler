@@ -3,6 +3,7 @@ Playwright Page 제공 어댑터
 """
 from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 from core.ports.web_scraping_ports import PageProvider
+from config import config
 
 
 class PlaywrightPageProvider(PageProvider):
@@ -14,7 +15,7 @@ class PlaywrightPageProvider(PageProvider):
     - Page 객체 제공만 담당
     """
     
-    def __init__(self, headless: bool = True):
+    def __init__(self, headless: bool = config.HEADLESS):
         self.headless = headless
         self.playwright: Playwright | None = None
         self.browser: Browser | None = None

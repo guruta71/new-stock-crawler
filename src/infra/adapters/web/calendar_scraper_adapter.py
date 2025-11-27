@@ -7,6 +7,7 @@ from playwright.sync_api import Page, Locator
 from core.ports.web_scraping_ports import CalendarScraperPort
 from core.domain.models import ScrapeReport
 from infra.adapters.parsing.text import parsers as text_parsers
+from config import config
 
 
 class CalendarScraperAdapter(CalendarScraperPort):
@@ -18,7 +19,7 @@ class CalendarScraperAdapter(CalendarScraperPort):
     - Page 객체만 사용
     """
     
-    BASE_URL = "https://www.38.co.kr"
+    BASE_URL = config.BASE_URL
     SCHEDULE_URL = f"{BASE_URL}/html/ipo/ipo_schedule.php"
     
     def scrape_calendar(
