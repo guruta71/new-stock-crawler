@@ -10,6 +10,14 @@ jobs:
   daily-crawl:
     runs-on: ubuntu-latest
     
+    # Git Push를 위한 권한 설정
+    permissions:
+      contents: write
+    
+    # 타임존 설정 (로그 시간용)
+    env:
+      TZ: 'Asia/Seoul'
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -24,7 +32,9 @@ jobs:
       run: uv sync --all-extras --dev
 
     - name: Install Playwright browsers
-      run: uv run playwright install chromium
+      run: |
+        uv run playwright install chromium
+        uv run playwright install-deps chromium
 
     - name: Run Daily Crawler
       run: |
