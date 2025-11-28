@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Data Export
     EXCEL_FILENAME: str = "stock_data.xlsx"
     
+    # Google Drive Integration
+    GOOGLE_SERVICE_ACCOUNT_FILE: str = "service_account.json"
+    GOOGLE_DRIVE_FOLDER_ID: str = ""  # .env에서 설정 필요
+    
     # Logging
     LOG_LEVEL: str = "INFO"
 
