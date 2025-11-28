@@ -40,7 +40,11 @@ def _build_dependencies(headless: bool = config.HEADLESS):
     data_mapper = DataFrameMapper()
     data_exporter = ExcelExporter()  # config 사용
     
-    # 3. Web Scraping
+    # 3. Storage
+    from infra.adapters.storage.google_drive_adapter import GoogleDriveAdapter
+    storage_adapter = GoogleDriveAdapter()
+    
+    # 4. Web Scraping
     page_provider = PlaywrightPageProvider(headless=headless)
     calendar_scraper = CalendarScraperAdapter()
     detail_scraper = DetailScraperAdapter(
@@ -49,7 +53,7 @@ def _build_dependencies(headless: bool = config.HEADLESS):
         market_data_provider=fdr_adapter
     )
     
-    # 4. Service
+    # 5. Service
     crawler_service = CrawlerService(
         page_provider=page_provider,
         calendar_scraper=calendar_scraper,
@@ -66,6 +70,7 @@ def _build_dependencies(headless: bool = config.HEADLESS):
         'logger': logger,
         'fdr': fdr_adapter,
         'exporter': data_exporter,
+        'storage': storage_adapter,
     }
 
 
@@ -99,6 +104,17 @@ def full_crawl(
         
         deps['logger'].info("=" * 60)
         deps['logger'].info("🏁 모든 크롤링 및 보강 작업 완료")
+        
+        # Google Drive 업로드
+        try:
+            output_path = config.get_output_path()
+            if output_path.exists():
+                deps['logger'].info("☁️  Google Drive 업로드 시작...")
+                file_id = deps['storage'].upload_file(output_path)
+                deps['logger'].info(f"✅ 업로드 성공 (ID: {file_id})")
+        except Exception as e:
+            deps['logger'].warning(f"⚠️  Google Drive 업로드 실패: {e}")
+            
         deps['logger'].info("=" * 60)
         
     except KeyboardInterrupt:
@@ -131,6 +147,7 @@ def enrich_data(
     from infra.adapters.data.fdr_adapter import FDRAdapter
     from infra.adapters.data.excel_exporter import ExcelExporter
     from infra.adapters.utils.console_logger import ConsoleLogger
+    from infra.adapters.storage.google_drive_adapter import GoogleDriveAdapter
     
     logger = ConsoleLogger()
     
@@ -167,6 +184,7 @@ def enrich_data(
     # Enrichment 서비스 초기화
     fdr_adapter = FDRAdapter()
     data_exporter = ExcelExporter()  # config 사용
+    storage_adapter = GoogleDriveAdapter()
     
     enrichment_service = EnrichmentService(
         ticker_mapper=fdr_adapter,
@@ -180,6 +198,16 @@ def enrich_data(
     
     logger.info("=" * 60)
     logger.info("🏁 보강 작업 스크립트 완료")
+    
+    # Google Drive 업로드
+    try:
+        output_path = Path(filepath)
+        logger.info("☁️  Google Drive 업로드 시작...")
+        file_id = storage_adapter.upload_file(output_path)
+        logger.info(f"✅ 업로드 성공 (ID: {file_id})")
+    except Exception as e:
+        logger.warning(f"⚠️  Google Drive 업로드 실패: {e}")
+        
     logger.info("=" * 60)
 
 
@@ -231,6 +259,18 @@ def daily_update(
         
         deps['logger'].info("=" * 60)
         deps['logger'].info("🏁 일일 업데이트 완료")
+        
+        # Google Drive 업로드 (데이터가 추가되었을 때만)
+        if new_data:
+            try:
+                output_path = config.get_output_path()
+                if output_path.exists():
+                    deps['logger'].info("☁️  Google Drive 업로드 시작...")
+                    file_id = deps['storage'].upload_file(output_path)
+                    deps['logger'].info(f"✅ 업로드 성공 (ID: {file_id})")
+            except Exception as e:
+                deps['logger'].warning(f"⚠️  Google Drive 업로드 실패: {e}")
+                
         deps['logger'].info("=" * 60)
         
     except KeyboardInterrupt:
