@@ -1,0 +1,27 @@
+"""
+파일 저장소 관련 포트 인터페이스
+"""
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+
+class StoragePort(ABC):
+    """
+    파일 저장소 포트
+    
+    책임: 로컬 파일을 원격 저장소로 업로드
+    """
+    
+    @abstractmethod
+    def upload_file(self, local_path: Path, remote_filename: str = None) -> str:
+        """
+        파일 업로드
+        
+        Args:
+            local_path: 로컬 파일 경로
+            remote_filename: 원격 저장소에 저장할 파일명 (None이면 로컬 파일명 사용)
+            
+        Returns:
+            str: 업로드된 파일의 ID 또는 URL
+        """
+        pass
