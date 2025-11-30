@@ -14,6 +14,7 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from core.ports.storage_ports import StoragePort
 from config import config
 
+
 class GoogleDriveAdapter(StoragePort):
     """
     Google Drive API를 사용한 파일 업로드 어댑터
