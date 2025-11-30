@@ -9,5 +9,8 @@ build:
 healthcheck:
     uv run crawler healthcheck
 
+docker-healthcheck:
+    docker-compose run --rm crawler crawler healthcheck
+
 daily:
     docker-compose run --rm crawler crawler daily --drive
