@@ -1,32 +1,49 @@
-# Python 3.11 슬림 이미지 사용
-FROM python:3.11-slim
+# Use a Python image with uv pre-installed
+# Project uses Python 3.11
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-# 작업 디렉토리 설정
+# Setup a non-root user
+RUN groupadd --system --gid 999 nonroot \
+ && useradd --system --gid 999 --uid 999 --create-home nonroot
+
 WORKDIR /app
 
-# 필수 시스템 패키지 설치 (Playwright 의존성 등)
-# uv 설치
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-# 프로젝트 파일 복사
-COPY pyproject.toml uv.lock ./
-COPY src/ ./src/
-COPY README.md ./
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-# 의존성 설치
-RUN uv sync --frozen
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-# Playwright 브라우저 설치
-RUN uv run playwright install chromium
-RUN uv run playwright install-deps chromium
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
 
-# 실행 권한 설정 (선택)
-# RUN chmod +x src/cli.py
+# Add virtual environment to PATH to use installed packages (like playwright)
+ENV PATH="/app/.venv/bin:$PATH"
 
-# 환경 변수 설정
-ENV PYTHONPATH=/app
-ENV HEADLESS=true
+# Install Playwright browsers and system dependencies
+# This must be done as root before switching user
+RUN playwright install-deps \
+    && playwright install chromium
 
-# 기본 실행 명령어 (도움말 출력)
-ENTRYPOINT ["uv", "run", "crawler"]
-CMD ["--help"]
+# Then, add the rest of the project source code and install it
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
+
+# Change ownership of the app directory to nonroot user
+RUN chown -R nonroot:nonroot /app
+
+# Reset the entrypoint, don't invoke `uv`
+ENTRYPOINT []
+
+# Use the non-root user to run our application
+USER nonroot
+
+# Default command
+CMD ["crawler", "--help"]

@@ -1,8 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Python
 __pycache__
 *.pyc
-.git
-.venv
-reports/
-.pytest_cache
-htmlcov/
-.coverage
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Project specific
+output/
+secrets/
+.env
+.python-version
+
