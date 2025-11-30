@@ -27,6 +27,9 @@ enrich:
 auth:
     uv run crawler auth
 
+healthcheck:
+    uv run crawler healthcheck
+
 docker-auth:
     docker-compose run --rm crawler crawler auth
 
