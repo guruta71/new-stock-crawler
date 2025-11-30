@@ -13,4 +13,7 @@ docker-healthcheck:
     docker compose run --rm crawler crawler healthcheck
 
 daily:
+    uv run crawler daily --drive
+
+docker-daily:
     docker compose run --rm crawler crawler daily --drive

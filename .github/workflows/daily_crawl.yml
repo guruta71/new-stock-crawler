@@ -40,4 +40,4 @@ jobs:
       run: just -f Justfile.linux build
 
     - name: Run Daily Crawler (via Just & Docker)
-      run: just -f Justfile.linux daily
+      run: just -f Justfile.linux docker-daily
