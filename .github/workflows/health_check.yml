@@ -12,25 +12,26 @@ jobs:
       TZ: 'Asia/Seoul'
     
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Just
       uses: extractions/setup-just@v2
 
-    - name: Create secrets directory
-      run: mkdir -p secrets
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
 
-    - name: Restore Client Secret
-      run: echo "${{ secrets.GOOGLE_CLIENT_SECRET }}" > secrets/client_secret.json
-
-    - name: Restore Token
-      run: echo "${{ secrets.GOOGLE_TOKEN }}" > secrets/token.json
+    - name: Create Secrets
+      run: |
+        mkdir -p secrets
+        echo '${{ secrets.GOOGLE_CLIENT_SECRET }}' > secrets/client_secret.json
+        echo '${{ secrets.GOOGLE_TOKEN }}' > secrets/token.json
 
     - name: Create .env file
       run: |
         echo "GOOGLE_DRIVE_FOLDER_ID=${{ secrets.DRIVE_FOLDER_ID }}" > .env
         echo "LOG_LEVEL=INFO" >> .env
 
-    - name: Run Health Check (via Just & Docker)
-      run: just docker-healthcheck
+    - name: Run Healthcheck
+      run: |
+        just -f Justfile.linux healthcheck

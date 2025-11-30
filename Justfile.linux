@@ -1,0 +1,7 @@
+# Justfile for Linux (CI/CD)
+
+default:
+    @just -f Justfile.linux --list
+
+healthcheck:
+    uv run crawler healthcheck
