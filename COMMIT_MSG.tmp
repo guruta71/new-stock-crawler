@@ -1,6 +1,0 @@
-refactor: Main Integration 및 Cleanup 완료
-
-- `src/main.py` 제거 (CLI `src/cli.py`로 진입점 단일화)
-- 레거시 코드 `src/infra/adapters/excel_persistence_adapter.py` 삭제
-- `pydantic` 버전 조정 (2.9.2)으로 호환성 문제 해결
-- 전체 테스트(`uv run crawler full`) 통과 확인
