@@ -4,7 +4,7 @@ FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
 # Setup a non-root user
 RUN groupadd --system --gid 999 nonroot \
- && useradd --system --gid 999 --uid 999 --create-home nonroot
+    && useradd --system --gid 999 --uid 999 --create-home nonroot
 
 WORKDIR /app
 
@@ -27,9 +27,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install Playwright browsers and system dependencies
+# Install Playwright browsers and system dependencies
 # This must be done as root before switching user
-RUN playwright install-deps \
-    && playwright install chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p $PLAYWRIGHT_BROWSERS_PATH \
+    && playwright install-deps \
+    && playwright install chromium \
+    && chown -R nonroot:nonroot $PLAYWRIGHT_BROWSERS_PATH
 
 # Then, add the rest of the project source code and install it
 COPY . /app
