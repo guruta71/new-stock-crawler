@@ -45,3 +45,10 @@ local-daily date="":
 
 local-enrich:
     uv run crawler enrich --drive
+
+# Release to employers-new-stock
+# Usage: just release
+release:
+    git checkout -B release master
+    git push -u employers-new-stock release:main
+    git checkout master
