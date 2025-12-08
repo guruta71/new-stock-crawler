@@ -36,9 +36,39 @@ class ExcelExporter(DataExporterPort):
             
         # 파일명 생성
         filename = config.get_default_filename()
-            
         filepath = os.path.join(self.output_dir, filename)
         
+        # 기존 파일이 있으면 로드하여 병합
+        if os.path.exists(filepath):
+            print(f"      [정보] 기존 파일 발견: {filepath} (데이터 병합 시도)")
+            try:
+                # 기존 데이터 로드 (모든 시트)
+                with pd.ExcelFile(filepath) as xls:
+                    for year, new_df in data.items():
+                        sheet_name = f"{year}년"
+                        if sheet_name in xls.sheet_names:
+                            existing_df = pd.read_excel(xls, sheet_name=sheet_name)
+                            
+                            # 병합 (기존 + 신규)
+                            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+                            
+                            # 중복 제거 (종목명 기준, 최신 데이터 유지)
+                            # keep='last'로 설정하여 나중에 추가된(새로 수집된) 데이터를 유지할 수도 있고,
+                            # 'first'로 하여 기존 데이터를 유지할 수도 있음.
+                            # 여기서는 새로 수집된 정보가 더 정확할 수 있으므로 'last' 사용 고려,
+                            # 하지만 보통 상장일 기준 정렬이 필요할 수 있음.
+                            # 우선 종목명 기준으로 중복 제거
+                            combined_df = combined_df.drop_duplicates(subset=['종목명'], keep='last')
+                            
+                            # 상장일 기준 정렬 (선택 사항)
+                            if '상장일' in combined_df.columns:
+                                combined_df = combined_df.sort_values(by='상장일', ascending=False)
+                                
+                            data[year] = combined_df
+                            print(f"      [병합 완료] {year}년: 총 {len(combined_df)}건 (기존 {len(existing_df)} + 신규 {len(new_df)})")
+            except Exception as e:
+                print(f"      [경고] 기존 파일 병합 실패 (덮어쓰기 진행): {e}")
+
         # 엑셀 저장
         with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
             for year, df in data.items():
