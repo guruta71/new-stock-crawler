@@ -45,6 +45,24 @@ def daily_update(
         # Playwright 초기화
         deps['page_provider'].setup()
         
+        # Google Drive 모드일 경우, 기존 파일 다운로드 (Append를 위해)
+        if drive:
+            try:
+                target_filename = config.get_default_filename()
+                deps['logger'].info(f"🔍 Google Drive에서 기존 파일 검색 중: {target_filename}")
+                
+                files = deps['storage'].list_files(f"name = '{target_filename}'")
+                if files:
+                    latest_file = files[0]
+                    target_path = config.get_output_path(target_filename)
+                    deps['logger'].info(f"⬇️  기존 파일 다운로드 중: {target_path}")
+                    deps['storage'].download_file(latest_file['id'], target_path)
+                    deps['logger'].info("✅ 다운로드 완료 (기존 데이터 병합 준비 완료)")
+                else:
+                    deps['logger'].info("ℹ️  Google Drive에 기존 파일이 없습니다. (신규 생성 예정)")
+            except Exception as e:
+                deps['logger'].warning(f"⚠️  Google Drive 파일 다운로드 실패 (신규 생성 진행): {e}")
+
         # 일일 스케줄 크롤링 실행 (당일 + 3일)
         new_data = deps['crawler'].run_scheduled(start_date=parsed_date, days_ahead=3)
         
