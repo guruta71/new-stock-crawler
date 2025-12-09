@@ -69,10 +69,10 @@ class ExcelExporter(DataExporterPort):
             except Exception as e:
                 print(f"      [경고] 기존 파일 병합 실패 (덮어쓰기 진행): {e}")
 
-        # 모든 데이터에 대해 상장일 기준 내림차순 정렬 (최신순)
+        # 모든 데이터에 대해 상장일 기준 오름차순 정렬 (날짜순: 과거 -> 미래)
         for year, df in data.items():
             if '상장일' in df.columns:
-                data[year] = df.sort_values(by='상장일', ascending=False)
+                data[year] = df.sort_values(by='상장일', ascending=True)
 
         # 엑셀 저장
         with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
