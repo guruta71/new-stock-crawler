@@ -8,6 +8,7 @@ services:
       - ./.env:/app/.env
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/client_secret.json
+      - TZ=Asia/Seoul
     # 실행 예시:
     # docker-compose run --rm crawler crawler full --drive
     # docker-compose run --rm crawler crawler daily --drive
