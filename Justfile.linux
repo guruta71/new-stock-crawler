@@ -17,3 +17,6 @@ daily:
 
 docker-daily:
     docker compose run --rm crawler crawler daily --drive
+
+docker-auth:
+    docker compose run --rm crawler crawler auth

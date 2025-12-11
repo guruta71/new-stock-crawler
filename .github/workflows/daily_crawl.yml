@@ -45,5 +45,11 @@ jobs:
     - name: Build Docker Image
       run: just -f Justfile.linux build
 
+    - name: Run Auth Check
+      run: just -f Justfile.linux docker-auth
+
+    - name: Run Health Check
+      run: just -f Justfile.linux docker-healthcheck
+
     - name: Run Daily Crawler (via Just & Docker)
       run: just -f Justfile.linux docker-daily
