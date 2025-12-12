@@ -46,22 +46,16 @@ def health_check():
     if not check_file(root_dir / ".env", "환경 변수 파일 (.env)"):
         all_passed = False
         
-    # secrets/client_secret.json
-    client_secret = Path(config.GOOGLE_SERVICE_ACCOUNT_FILE)
-    if not check_file(client_secret, "Google OAuth 시크릿"):
+    # secrets/service_account.json
+    service_account_file = Path(config.GOOGLE_SERVICE_ACCOUNT_FILE)
+    if not check_file(service_account_file, "Service Account Key"):
         all_passed = False
-        console.print("    [warning]➜ secrets/client_secret.json 위치에 파일을 넣어주세요.[/warning]")
-
-    # secrets/token.json
-    token_file = client_secret.parent / 'token.json'
-    token_exists = check_file(token_file, "Google Drive 토큰")
-    if not token_exists:
-        console.print("    [info]➜ 'crawler auth' 명령어로 토큰을 발급받을 수 있습니다.[/info]")
+        console.print(f"    [warning]➜ {config.GOOGLE_SERVICE_ACCOUNT_FILE} 위치에 파일을 넣어주세요.[/warning]")
     
     # 2. 구글 드라이브 연결 점검
     console.print("\n[bold]2. Google Drive 연결 테스트[/bold]")
     
-    if token_exists:
+    if service_account_file.exists():
         try:
             storage = GoogleDriveAdapter()
             # 1개만 조회해서 연결 확인
@@ -71,7 +65,7 @@ def health_check():
             console.print(f"  • [error]❌ 연결 실패[/error]: {e}")
             all_passed = False
     else:
-        console.print("  • [warning]⚠️ 토큰이 없어 연결 테스트를 건너뜁니다.[/warning]")
+        console.print("  • [warning]⚠️ 키 파일이 없어 연결 테스트를 건너뜁니다.[/warning]")
         all_passed = False
 
     console.print("\n" + "="*30)
