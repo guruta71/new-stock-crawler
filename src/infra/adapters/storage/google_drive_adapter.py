@@ -5,7 +5,9 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
@@ -15,30 +17,47 @@ from config import config
 
 class GoogleDriveAdapter(StoragePort):
     """
-    Google Drive API를 사용한 파일 업로드 어댑터
+    Google Drive API를 사용한 파일 업로드 어댑터 (OAuth 2.0)
     """
     
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
     
-    def __init__(self, service_account_file: str = None, folder_id: str = None):
-        self.service_account_file = service_account_file or config.GOOGLE_SERVICE_ACCOUNT_FILE
+    def __init__(self, client_secret_file: str = None, token_file: str = None, folder_id: str = None):
+        self.client_secret_file = client_secret_file or config.GOOGLE_CLIENT_SECRET_FILE
+        self.token_file = token_file or config.GOOGLE_TOKEN_FILE
         self.folder_id = folder_id or config.GOOGLE_DRIVE_FOLDER_ID
         self._service = None
+        self._creds = None
         
     def _authenticate(self):
-        """Google Drive API 인증 및 서비스 생성 (Service Account)"""
+        """Google Drive API 인증 및 서비스 생성 (OAuth 2.0)"""
         if self._service:
             return
 
-        if not os.path.exists(self.service_account_file):
-            raise FileNotFoundError(f"인증 파일을 찾을 수 없습니다: {self.service_account_file}")
+        # 1. 토큰 파일 로드
+        if os.path.exists(self.token_file):
+            self._creds = Credentials.from_authorized_user_file(self.token_file, self.SCOPES)
             
-        creds = service_account.Credentials.from_service_account_file(
-            self.service_account_file, 
-            scopes=self.SCOPES
-        )
+        # 2. 유효성 검사 및 갱신
+        if not self._creds or not self._creds.valid:
+            if self._creds and self._creds.expired and self._creds.refresh_token:
+                try:
+                    self._creds.refresh(Request())
+                except Exception as e:
+                    print(f"      [Google Drive] 토큰 갱신 실패, 재인증 필요: {e}")
+                    self._creds = None
             
-        self._service = build('drive', 'v3', credentials=creds)
+            # 토큰이 없거나 갱신 실패 시, 여기서는 자동으로 브라우저를 띄우지 않습니다.
+            # (CLI 실행 중 불필요한 브라우저 팝업 방지 및 헤드리스 환경 고려)
+            # 사용자가 명시적으로 'auth' 커맨드를 실행해야 합니다.
+            
+            if not self._creds:
+                 raise FileNotFoundError(
+                     f"유효한 인증 토큰이 없습니다. 'just auth' 또는 'uv run crawler auth'를 실행하여 인증을 진행해주세요.\n"
+                     f"토큰 파일 경로: {self.token_file}"
+                 )
+            
+        self._service = build('drive', 'v3', credentials=self._creds)
 
     def upload_file(self, local_path: Path, remote_filename: str = None) -> str:
         """

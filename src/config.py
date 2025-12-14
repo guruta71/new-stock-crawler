@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     EXCEL_FILENAME: str = "stock_data.xlsx"
     
     # Google Drive Integration
-    GOOGLE_SERVICE_ACCOUNT_FILE: str = "secrets/service_account.json"
+    GOOGLE_CLIENT_SECRET_FILE: str = "secrets/client_secret.json"
+    GOOGLE_TOKEN_FILE: str = "secrets/token.json"
     GOOGLE_DRIVE_FOLDER_ID: str = ""  # .env에서 설정 필요
     
     # Logging

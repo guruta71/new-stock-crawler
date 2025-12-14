@@ -2,7 +2,10 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.theme import Theme
+import os
 
+from google_auth_oauthlib.flow import InstalledAppFlow
+from config import config
 from infra.adapters.storage.google_drive_adapter import GoogleDriveAdapter
 
 # 커스텀 테마 정의
@@ -18,24 +21,45 @@ console = Console(theme=custom_theme)
 
 def auth_drive():
     """
-    구글 드라이브 인증 테스트 (Service Account)
+    구글 드라이브 인증 (OAuth 2.0)
     
-    Service Account 키 파일을 사용하여 구글 드라이브 접근 권한을 확인합니다.
+    웹 브라우저를 열어 구글 로그인을 수행하고,
+    발급받은 인증 토큰을 로컬 파일(token.json)로 저장합니다.
     """
-    console.print(Panel.fit("🔐 Google Drive 인증 도구 (Service Account)", style="bold blue"))
+    console.print(Panel.fit("🔐 Google Drive 인증 도구 (OAuth 2.0)", style="bold blue"))
     
     try:
-        # 무거운 의존성 주입(build_dependencies) 대신 필요한 어댑터만 가볍게 초기화
-        console.print("[info]Google Drive 어댑터를 초기화합니다...[/info]")
+        # 0. Client Secret 확인
+        if not os.path.exists(config.GOOGLE_CLIENT_SECRET_FILE):
+             console.print(f"[error]❌ Client Secret 파일을 찾을 수 없습니다.[/error]\n경로: {config.GOOGLE_CLIENT_SECRET_FILE}")
+             raise typer.Exit(code=1)
+
+        console.print("[info]브라우저를 실행하여 인증을 진행합니다...[/info]")
+        
+        # 1. Flow 생성 및 인증 진행
+        flow = InstalledAppFlow.from_client_secrets_file(
+            config.GOOGLE_CLIENT_SECRET_FILE,
+            scopes=GoogleDriveAdapter.SCOPES
+        )
+        
+        creds = flow.run_local_server(port=0)
+        
+        # 2. 토큰 저장
+        console.print(f"[info]토큰을 저장합니다...[/info] ({config.GOOGLE_TOKEN_FILE})")
+        
+        # secrets 폴더가 없으면 생성
+        os.makedirs(os.path.dirname(config.GOOGLE_TOKEN_FILE), exist_ok=True)
+        
+        with open(config.GOOGLE_TOKEN_FILE, 'w') as token:
+            token.write(creds.to_json())
+            
+        console.print(Panel(f"[success]✅ 인증 성공! 토큰이 저장되었습니다.[/success]", title="인증 완료", border_style="green"))
+        
+        # 3. 연결 테스트
+        console.print("\n[info]연결 테스트를 수행합니다...[/info]")
         storage = GoogleDriveAdapter()
-        
-        # 인증 트리거 (파일 목록 조회 시도)
-        console.print("[info]Service Account 연결 테스트 중...[/info]")
-        
-        # 실제 인증 및 API 호출 테스트
         files = storage.list_files(query="trashed = false")
-        
-        console.print(Panel(f"[success]✅ 인증 성공! (Service Account 연결됨)[/success]\n\n현재 드라이브 파일 수: {len(files)}개", title="인증 완료", border_style="green"))
+        console.print(f"  • [success]✅ 연결 확인됨[/success] (현재 드라이브 파일 수: {len(files)}개)")
         
     except Exception as e:
         console.print(f"[error]❌ 인증 실패:[/error] {e}")
