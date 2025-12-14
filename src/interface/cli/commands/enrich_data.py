@@ -124,15 +124,16 @@ def enrich_data(
             except Exception as e:
                 logger.warning(f"⚠️  Google Drive 업로드 실패: {e}")
             finally:
-                # 로컬 파일 삭제 (Cleanup)
+                # 로컬 파일 유지 (사용자 요청)
                 # 다운로드 받은 원본 파일 삭제
-                if target_path and target_path.exists() and target_path != output_path:
-                        os.remove(target_path)
+                # if target_path and target_path.exists() and target_path != output_path:
+                #         os.remove(target_path)
                         
                 # 새로 생성된 파일 삭제
-                if output_path.exists():
-                    os.remove(output_path)
-                    logger.info(f"🗑️  임시 파일 삭제 완료")
+                # if output_path.exists():
+                #     os.remove(output_path)
+                #     deps['logger'].info(f"🗑️  임시 파일 삭제 완료")
+                pass
             
         logger.info("=" * 60)
 

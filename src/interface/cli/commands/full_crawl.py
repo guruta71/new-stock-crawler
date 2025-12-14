@@ -45,10 +45,11 @@ def full_crawl(
             except Exception as e:
                 deps['logger'].warning(f"⚠️  Google Drive 처리 실패: {e}")
             finally:
-                # 로컬 파일 삭제 (Cleanup) - 성공/실패 여부와 관계없이 삭제
-                if output_path.exists():
-                    os.remove(output_path)
-                    deps['logger'].info(f"🗑️  임시 파일 삭제 완료: {output_path}")
+                # 로컬 파일 유지 (사용자 요청)
+                # if output_path.exists():
+                #     os.remove(output_path)
+                #     deps['logger'].info(f"🗑️  임시 파일 삭제 완료: {output_path}")
+                pass
             
         deps['logger'].info("=" * 60)
         
