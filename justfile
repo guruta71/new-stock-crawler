@@ -15,13 +15,14 @@ init:
 build:
     docker-compose build
 
-full year="2020":
+# Docker execution
+docker-full year="2020":
     docker-compose run --rm crawler crawler full --start-year {{year}} --drive
 
-daily date="":
+docker-daily date="":
     docker-compose run --rm crawler crawler daily {{ if date != "" { "--date " + date } else { "" } }} --drive
 
-enrich:
+docker-enrich:
     docker-compose run --rm crawler crawler enrich --drive
 
 auth:
@@ -36,14 +37,14 @@ docker-healthcheck:
 docker-auth:
     docker-compose run --rm crawler crawler auth
 
-# Local execution (using uv)
-local-full year="2020":
+# Local execution (using uv) - Default
+full year="2020":
     uv run crawler full --start-year {{year}} --drive
 
-local-daily date="":
+daily date="":
     uv run crawler daily {{ if date != "" { "--date " + date } else { "" } }} --drive
 
-local-enrich:
+enrich:
     uv run crawler enrich --drive
 
 # Release to employers-new-stock
