@@ -175,12 +175,13 @@ class CrawlerService:
                 # 1. 과거 날짜: 무조건 수집
                 if target_date < today:
                     should_enrich = True
-                # 2. 오늘: 16시 이후에만 수집
+                # 2. 오늘: 15:30 이후에만 수집
                 elif target_date == today:
-                    if now.hour >= 16:
+                    # 15시 30분 이후인지 확인
+                    if now.hour > 15 or (now.hour == 15 and now.minute >= 30):
                         should_enrich = True
                     else:
-                        self.logger.info(f"      ⏳ 장 마감 전(16시 이전)이므로 OHLC 수집 생략: {stock.name}")
+                        self.logger.info(f"      ⏳ 장 마감 전(15:30 이전)이므로 OHLC 수집 생략: {stock.name}")
                 # 3. 미래: 수집 안 함 (기본값 False)
                 else:
                     self.logger.info(f"      📅 미래 상장 예정이므로 OHLC 수집 생략: {stock.name}")

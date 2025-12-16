@@ -143,7 +143,9 @@ class GoogleDriveAdapter(StoragePort):
             orderBy="createdTime desc"
         ).execute()
         
-        return results.get('files', [])
+        files = results.get('files', [])
+        print(f"      [Google Drive] 파일 목록 조회 완료 (Query: {query}, Found: {len(files)}개)")
+        return files
 
     def download_file(self, file_id: str, local_path: Path) -> None:
         """
